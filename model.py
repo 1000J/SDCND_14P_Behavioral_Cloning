@@ -27,13 +27,12 @@ LOG_SPLIT = '\\'
     
 def training_model():
     row, col, depth = 160, 320, 3
+#    row, col, depth = 320, 160, 3
     model = Sequential()
+    model.add(Cropping2D(cropping=((70,25),(0,0)), input_shape = (row, col, depth)))
 
     # normalization
-    model.add(Lambda(lambda x: (x / 255) - 0.5, input_shape = (row, col, depth), 
-                 output_shape=(row, col, depth)))
-
-    model.add(Cropping2D(cropping=((70,25),(0,0))))
+    model.add(Lambda(lambda x: (x / 255) - 0.5))
 
     #model nvidia autonomous driving team with drop out added at FC layers
     model.add(Convolution2D(24,5,5,subsample=(2,2),activation='relu'))
@@ -60,7 +59,7 @@ def training_model():
 def generator(samples, batch_size=32):
     num_samples = len(samples)
     while True: # Loop forever so the generator never terminates
-        shuffle(samples)
+        sklearn.utils.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
 
@@ -68,7 +67,8 @@ def generator(samples, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 name = DATA_PATH + 'IMG/'+batch_sample[0].split(LOG_SPLIT)[-1]
-                center_image = cv2.imread(name)
+                center_image_bgr = cv2.imread(name)
+                center_image = cv2.cvtColor(center_image_bgr, cv2.COLOR_BGR2RGB)
                 center_angle = float(batch_sample[3])
                 images.append(center_image)
                 angles.append(center_angle)
@@ -82,7 +82,7 @@ def generator(samples, batch_size=32):
 def train_generator(samples, batch_size=32):
     num_samples = len(samples)
     while True: # Loop forever so the generator never terminates
-        shuffle(samples)
+        sklearn.utils.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
 
@@ -90,7 +90,8 @@ def train_generator(samples, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 name = DATA_PATH + 'IMG/'+batch_sample[0].split(LOG_SPLIT)[-1]
-                center_image = cv2.imread(name)
+                center_image_bgr = cv2.imread(name)
+                center_image = cv2.cvtColor(center_image_bgr, cv2.COLOR_BGR2RGB)
                 center_angle = float(batch_sample[3])
                 images.append(center_image)
                 angles.append(center_angle)
@@ -110,7 +111,7 @@ def train_generator(samples, batch_size=32):
 def valid_generator(samples, batch_size=32):
     num_samples = len(samples)
     while True: # Loop forever so the generator never terminates
-        shuffle(samples)
+        sklearn.utils.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
 
@@ -118,7 +119,8 @@ def valid_generator(samples, batch_size=32):
             angles = []
             for batch_sample in batch_samples:
                 name = DATA_PATH + 'IMG/'+batch_sample[0].split(LOG_SPLIT)[-1]
-                center_image = cv2.imread(name)
+                center_image_bgr = cv2.imread(name)
+                center_image = cv2.cvtColor(center_image_bgr, cv2.COLOR_BGR2RGB)
                 center_angle = float(batch_sample[3])
                 images.append(center_image)
                 angles.append(center_angle)
@@ -143,7 +145,8 @@ def data_nongenerator(lines):
             filename = source_path.split('/')[-1]
             #        current_path = 'C:/courses/udacity/SDCND/14_project_behavioral_cloning/CarND-Behavioral-Cloning-P3/sim_data/IMG/' + filename
             current_path = DATA_PATH + 'IMG/' + filename
-            image = cv2.imread(current_path)
+            image_bgr = cv2.imread(current_path)
+            image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
             images.append(image)
             measurement = float(line[3])
             measurements.append(measurement)
@@ -197,6 +200,6 @@ if __name__ == "__main__":
     model = training_model()
     model.fit_generator(train_generator, samples_per_epoch=len(train_samples)*2, 
                         validation_data=validation_generator,
-                        nb_val_samples=len(validation_samples), nb_epoch=15)
+                        nb_val_samples=len(validation_samples), nb_epoch=10)
 
     model.save('model.h5')
